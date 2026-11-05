@@ -3,6 +3,10 @@
     "angular-cli": {
       "command": "npx",
       "args": ["-y", "@angular/cli", "mcp"]
+    },
+    "zard-ui": {
+      "command": "npx",
+      "args": ["-y", "zard-mcp@1.1.0"]
     }
   }
 }
