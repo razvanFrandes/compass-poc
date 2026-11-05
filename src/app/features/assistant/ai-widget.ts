@@ -32,7 +32,7 @@ const CHART_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var
     } @else {
       <div class="overflow-auto rounded-lg border">
         <table z-table>
-          <thead z-table-header class="bg-muted sticky top-0 z-10">
+          <thead z-table-header class="sticky top-0 z-10">
             <tr z-table-row>
               @for (column of w.columns; track column.key) {
                 <th z-table-head>{{ column.label }}</th>

@@ -2,10 +2,10 @@
   zDefaultOpen="true"
   class="[--header-height:calc(--spacing(12))] [--sidebar-width:calc(--spacing(72))]"
 >
-  <app-hotel-sidebar [hotels]="hotels.value()" [current]="hotel()" />
+  <app-hotel-sidebar [hotels]="hotelList()" [current]="hotel()" />
 
   <main z-sidebar-inset>
-    <app-site-header [title]="title()" [aiMode]="health.value()?.ai" />
+    <app-site-header [title]="title()" [aiMode]="aiMode()" />
 
     <div class="flex flex-1 flex-col">
       <div class="flex flex-1 flex-col gap-2">

@@ -24,7 +24,7 @@ import type { Dashboard } from '../../core/compass-api';
       <z-card-content>
         <div class="overflow-auto rounded-lg border">
           <table z-table>
-            <thead z-table-header class="bg-muted sticky top-0 z-10">
+            <thead z-table-header class="sticky top-0 z-10">
               <tr z-table-row>
                 <th z-table-head>Noaptea</th>
                 <th z-table-head class="text-right">Ocupare</th>

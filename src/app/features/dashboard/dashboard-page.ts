@@ -51,9 +51,13 @@ export default class DashboardPage {
   protected readonly health = httpResource<Health>(() => '/api/health');
   protected readonly dashboard = httpResource<Dashboard>(() => `/api/dashboard/${encodeURIComponent(this.hotel())}`);
 
+  // A resource in error throws from value(), so the template and title read through these guards.
+  protected readonly hotelList = computed(() => (this.hotels.hasValue() ? this.hotels.value() : []));
+  protected readonly aiMode = computed(() => (this.health.hasValue() ? this.health.value().ai : undefined));
+
   protected readonly title = computed(() => {
     const id = this.hotel();
     if (id === 'all') return 'Toate hotelurile';
-    return this.hotels.value().find((h) => h.id === id)?.name ?? id;
+    return this.hotelList().find((h) => h.id === id)?.name ?? id;
   });
 }

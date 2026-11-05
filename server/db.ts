@@ -18,7 +18,10 @@ export async function openDatabase(): Promise<PGlite> {
   return db;
 }
 
-/** Runs one statement written by the model, inside a read-only transaction that is always rolled back. */
+/**
+ * Runs one statement written by the model, inside a read-only transaction that is always rolled back.
+ * Call it through `SqlRunner`, which adds the time limit PGlite cannot enforce on its own thread.
+ */
 export async function runReadOnly(db: PGlite, sql: string, maxRows = 200): Promise<Row[]> {
   const statement = sql.trim().replace(/;+\s*$/, '');
   if (!/^(with|select)\b/i.test(statement)) {
@@ -30,8 +33,10 @@ export async function runReadOnly(db: PGlite, sql: string, maxRows = 200): Promi
 
   return db.transaction(async (tx) => {
     await tx.exec('SET TRANSACTION READ ONLY');
-    const result = await tx.query<Row>(statement);
+    // The outer LIMIT bounds what Postgres materializes, not just what we keep. The line breaks keep a
+    // trailing `--` comment in the model's SQL from swallowing the wrapper.
+    const result = await tx.query<Row>(`SELECT * FROM (\n${statement}\n) AS model_query LIMIT ${maxRows}`);
     await tx.rollback();
-    return result.rows.slice(0, maxRows);
+    return result.rows;
   });
 }

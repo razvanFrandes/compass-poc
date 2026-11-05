@@ -28,12 +28,19 @@ import type { Hotel } from '../../core/compass-api';
       </div>
 
       <z-sidebar-content>
+        <nav aria-label="Hoteluri" class="flex flex-col gap-2">
         <div z-sidebar-group>
           <div z-sidebar-group-label>Portofoliu</div>
           <div z-sidebar-group-content>
             <ul z-sidebar-menu>
               <li z-sidebar-menu-item>
-                <a z-sidebar-menu-button routerLink="/all" [zActive]="current() === 'all'" zTooltip="Toate hotelurile">
+                <a
+                  z-sidebar-menu-button
+                  routerLink="/all"
+                  [zActive]="current() === 'all'"
+                  [attr.aria-current]="current() === 'all' ? 'page' : null"
+                  zTooltip="Toate hotelurile"
+                >
                   <ng-icon name="lucideBuilding2" />
                   <span>Toate hotelurile</span>
                 </a>
@@ -52,6 +59,7 @@ import type { Hotel } from '../../core/compass-api';
                     z-sidebar-menu-button
                     [routerLink]="['/', hotel.id]"
                     [zActive]="current() === hotel.id"
+                    [attr.aria-current]="current() === hotel.id ? 'page' : null"
                     [zTooltip]="hotel.name"
                   >
                     <ng-icon name="lucideHotel" />
@@ -69,6 +77,7 @@ import type { Hotel } from '../../core/compass-api';
             </ul>
           </div>
         </div>
+        </nav>
       </z-sidebar-content>
 
       <div z-sidebar-footer>

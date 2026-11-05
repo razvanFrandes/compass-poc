@@ -59,6 +59,12 @@ export interface AskResult {
   durationMs: number;
 }
 
+/** An earlier question in the same chat, sent so follow-ups ("and for Brașov?") have context. */
+export interface Turn {
+  question: string;
+  sql: string | null;
+}
+
 export interface Health {
   ok: boolean;
   ai: 'claude' | 'mock';
@@ -69,7 +75,7 @@ export interface Health {
 export class CompassApi {
   private readonly http = inject(HttpClient);
 
-  ask(question: string, hotel: string): Promise<AskResult> {
-    return firstValueFrom(this.http.post<AskResult>('/api/ask', { question, hotel }));
+  ask(question: string, hotel: string, history: readonly Turn[] = []): Promise<AskResult> {
+    return firstValueFrom(this.http.post<AskResult>('/api/ask', { question, hotel, history }));
   }
 }

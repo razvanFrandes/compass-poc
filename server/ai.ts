@@ -3,10 +3,9 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import type { PGlite } from '@electric-sql/pglite';
-
-import { runReadOnly, type Row } from './db.ts';
+import type { Row } from './db.ts';
 import { BUSINESS_DATE } from './seed.ts';
+import type { SqlRunner } from './sql-runner.ts';
 
 export type WidgetType = 'bar' | 'line' | 'area' | 'table';
 
@@ -22,6 +21,12 @@ export interface Widget {
   series: WidgetField[];
   columns: WidgetField[];
   rows: Row[];
+}
+
+/** An earlier turn of the same conversation, so follow-up questions have context. */
+export interface Turn {
+  question: string;
+  sql: string | null;
 }
 
 export interface AskResult {
@@ -180,6 +185,16 @@ function hotelContext(hotel: string): string {
   return hotel === 'all' ? "Current hotel filter: 'all' (the whole group)." : `Current hotel filter: '${hotel}'.`;
 }
 
+function historyContext(history: readonly Turn[]): string {
+  if (!history.length) return '';
+  const turns = history.map((t, i) => `${i + 1}. Question: ${t.question}${t.sql ? `\n   SQL: ${t.sql}` : ''}`).join('\n');
+  return `Earlier in this conversation (oldest first):\n${turns}\nInterpret the new question as a follow-up when it refers to them.\n`;
+}
+
+function noDataAnswer(plan: Plan): Omit<AskResult, 'durationMs'> {
+  return { answer: plan.reply || 'Nu pot răspunde la asta din datele disponibile.', widget: null, sql: null, source: 'claude' };
+}
+
 function toWidget(plan: Plan, rows: Row[]): Widget | null {
   if (!rows.length) return null;
   const present = new Set(Object.keys(rows[0]));
@@ -196,21 +211,20 @@ function toWidget(plan: Plan, rows: Row[]): Widget | null {
   };
 }
 
-async function askClaude(db: PGlite, question: string, hotel: string): Promise<Omit<AskResult, 'durationMs'>> {
-  const request = `${hotelContext(hotel)}\nQuestion: ${question}`;
+async function askClaude(sql: SqlRunner, question: string, hotel: string, history: readonly Turn[]): Promise<Omit<AskResult, 'durationMs'>> {
+  const request = `${historyContext(history)}${hotelContext(hotel)}\nQuestion: ${question}`;
   let plan = await callClaude<Plan>(PLAN_MODEL, PLAN_PROMPT, request, PLAN_SCHEMA);
-  if (!plan.sql.trim()) {
-    return { answer: plan.reply || 'Nu pot răspunde la asta din datele disponibile.', widget: null, sql: null, source: 'claude' };
-  }
+  if (!plan.sql.trim()) return noDataAnswer(plan);
 
   let rows: Row[];
   try {
-    rows = await runReadOnly(db, plan.sql);
+    rows = await sql.run(plan.sql);
   } catch (err) {
     // One repair attempt: show the model its own query and the database error.
     const repair = `${request}\n\nYour previous query failed.\nQuery: ${plan.sql}\nError: ${(err as Error).message}\nReturn a corrected plan.`;
     plan = await callClaude<Plan>(PLAN_MODEL, PLAN_PROMPT, repair, PLAN_SCHEMA);
-    rows = await runReadOnly(db, plan.sql);
+    if (!plan.sql.trim()) return noDataAnswer(plan);
+    rows = await sql.run(plan.sql);
   }
 
   const answerRequest = `Question: ${question}\n${hotelContext(hotel)}\nQuery result (JSON, ${rows.length} rows):\n${JSON.stringify(rows.slice(0, 60))}`;
@@ -328,17 +342,23 @@ const MOCK_CASES: readonly MockCase[] = [
   },
 ];
 
-async function askMock(db: PGlite, question: string, hotel: string): Promise<Omit<AskResult, 'durationMs'>> {
+async function askMock(sql: SqlRunner, question: string, hotel: string): Promise<Omit<AskResult, 'durationMs'>> {
   const mock = MOCK_CASES.find((c) => c.match.test(question)) ?? MOCK_CASES[MOCK_CASES.length - 1];
   const plan = mock.plan(hotel);
-  const rows = await runReadOnly(db, plan.sql);
+  const rows = await sql.run(plan.sql);
   return { answer: mock.answer(rows), widget: toWidget(plan, rows), sql: plan.sql, source: 'mock' };
 }
 
 export type AiMode = 'claude' | 'mock';
 
-export async function ask(db: PGlite, mode: AiMode, question: string, hotel: string): Promise<AskResult> {
+export async function ask(
+  sql: SqlRunner,
+  mode: AiMode,
+  question: string,
+  hotel: string,
+  history: readonly Turn[] = [],
+): Promise<AskResult> {
   const started = performance.now();
-  const result = mode === 'claude' ? await askClaude(db, question, hotel) : await askMock(db, question, hotel);
+  const result = mode === 'claude' ? await askClaude(sql, question, hotel, history) : await askMock(sql, question, hotel);
   return { ...result, durationMs: Math.round(performance.now() - started) };
 }

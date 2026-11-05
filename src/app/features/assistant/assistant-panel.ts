@@ -21,10 +21,11 @@ import { ZardCardImports } from '@/shared/components/card/card.imports';
 import { ZardCollapsibleImports } from '@/shared/components/collapsible/collapsible.imports';
 import { ZardEmptyComponent } from '@/shared/components/empty/empty.component';
 import { ZardInputGroupImports } from '@/shared/components/input-group/input-group.imports';
+import { ZardKbdImports } from '@/shared/components/kbd/kbd.imports';
 import { ZardMessageImports } from '@/shared/components/message/message.imports';
 import { ZardTextareaComponent } from '@/shared/components/textarea/textarea.component';
 
-import { type AskResult, CompassApi } from '../../core/compass-api';
+import { type AskResult, CompassApi, type Turn } from '../../core/compass-api';
 import { AiWidget } from './ai-widget';
 import { PinnedWidgets } from './pinned-widgets';
 
@@ -53,6 +54,7 @@ const SUGGESTIONS = [
     ...ZardBubbleImports,
     ...ZardInputGroupImports,
     ...ZardCollapsibleImports,
+    ...ZardKbdImports,
     ZardButtonComponent,
     ZardEmptyComponent,
     ZardTextareaComponent,
@@ -74,7 +76,6 @@ export class AssistantPanel {
   protected readonly suggestions = SUGGESTIONS;
   protected readonly messages = signal<readonly ChatMessage[]>([]);
   protected readonly pending = signal(false);
-  protected readonly pinnedIds = signal<ReadonlySet<number>>(new Set());
 
   protected readonly draft = signal({ question: '' });
   protected readonly askForm = form(this.draft, (path) => {
@@ -110,11 +111,13 @@ export class AssistantPanel {
     const question = raw.trim();
     if (!question || question.length > 500 || this.pending()) return;
 
+    const history = this.history();
     this.push({ role: 'user', text: question });
-    this.draft.set({ question: '' });
+    // reset() also rewrites the textarea through the field binding, even if the DOM changed since the last render.
+    this.askForm().reset({ question: '' });
     this.pending.set(true);
     try {
-      const result = await this.api.ask(question, this.hotel());
+      const result = await this.api.ask(question, this.hotel(), history);
       this.push({ role: 'assistant', text: result.answer, question, result });
     } catch (err) {
       const message =
@@ -128,14 +131,21 @@ export class AssistantPanel {
   }
 
   protected pin(message: ChatMessage): void {
-    if (!message.result?.widget || this.pinnedIds().has(message.id)) return;
-    this.pinned.pin(message.question ?? '', message.result.widget);
-    this.pinnedIds.update((ids) => new Set(ids).add(message.id));
+    if (!message.result?.widget) return;
+    this.pinned.pin(message.id, message.question ?? '', message.result.widget);
   }
 
   protected footer(result: AskResult): string {
     const seconds = formatNumber(result.durationMs / 1000, this.locale, '1.1-1');
     return `${result.source === 'claude' ? 'Claude Code' : 'Mod demo'} · ${seconds} s`;
+  }
+
+  /** The last answered questions, oldest first, so the server can resolve follow-ups. */
+  private history(): Turn[] {
+    return this.messages()
+      .filter((m) => m.role === 'assistant' && m.question && m.result)
+      .slice(-3)
+      .map((m) => ({ question: m.question ?? '', sql: m.result?.sql ?? null }));
   }
 
   private push(message: Omit<ChatMessage, 'id'>): void {

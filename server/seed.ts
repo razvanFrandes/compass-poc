@@ -214,11 +214,21 @@ export async function seed(db: PGlite): Promise<void> {
       if (!isFuture) {
         let left = roomsSold;
         const names = Object.keys(h.channelMix);
-        names.forEach((channel, i) => {
+        const split = names.map((channel, i) => {
           const sold = i === names.length - 1 ? left : Math.min(left, Math.round(roomsSold * h.channelMix[channel] * (0.85 + rand() * 0.3)));
           left -= sold;
-          const channelAdr = adr * (channel === 'Corporate' || channel === 'Grupuri' ? 0.88 : channel === 'Direct' ? 1.02 : 1);
-          channels.push([h.id, iso, channel, sold, round2(sold * channelAdr), commission[channel]]);
+          // Negotiated channels sell below BAR, direct slightly above.
+          const weight = channel === 'Corporate' || channel === 'Grupuri' ? 0.88 : channel === 'Direct' ? 1.02 : 1;
+          return { channel, sold, raw: sold * weight };
+        });
+        // Scale so the channels add up to the night's revenue exactly; the last one takes the rounding.
+        const dayRevenue = round2(roomsSold * adr);
+        const rawTotal = split.reduce((sum, s) => sum + s.raw, 0) || 1;
+        let revenueLeft = dayRevenue;
+        split.forEach((s, i) => {
+          const revenue = i === split.length - 1 ? round2(revenueLeft) : round2((s.raw / rawTotal) * dayRevenue);
+          revenueLeft -= revenue;
+          channels.push([h.id, iso, s.channel, s.sold, revenue, commission[s.channel]]);
         });
       }
 
