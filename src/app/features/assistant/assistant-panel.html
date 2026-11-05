@@ -1,0 +1,119 @@
+<z-card>
+  <z-card-header zHeaderBorder>
+    <z-card-title zTitle="Întreabă Compass" />
+    <z-card-description zDescription="Răspunde din datele grupului și construiește graficul potrivit" />
+  </z-card-header>
+
+  <z-card-content class="flex flex-col gap-4">
+    <div #thread class="scroll-fade flex h-120 flex-col gap-6 overflow-y-auto" aria-live="polite">
+      @if (!messages().length) {
+        <z-empty
+          zIcon="lucideSparkles"
+          zTitle="Ce vrei să afli?"
+          zDescription="Întreabă despre ocupare, tarife, canale sau evenimente. Primești răspunsul și un grafic pe care îl poți fixa pe dashboard."
+        />
+        <div class="flex flex-col gap-2">
+          @for (suggestion of suggestions; track suggestion) {
+            <button z-button zType="outline" zSize="sm" class="h-auto justify-start py-2 text-left whitespace-normal" (click)="send(suggestion)">
+              {{ suggestion }}
+            </button>
+          }
+        </div>
+      }
+
+      @for (message of messages(); track message.id) {
+        @if (message.role === 'user') {
+          <z-message zAlign="end">
+            <z-message-content>
+              <z-bubble>
+                <z-bubble-content>{{ message.text }}</z-bubble-content>
+              </z-bubble>
+            </z-message-content>
+          </z-message>
+        } @else {
+          <z-message>
+            <z-message-content class="w-full">
+              <z-bubble [zVariant]="message.error ? 'destructive' : 'ghost'">
+                <z-bubble-content>{{ message.text }}</z-bubble-content>
+              </z-bubble>
+
+              @if (message.result?.widget; as widget) {
+                <z-card zSize="sm" class="w-full">
+                  <z-card-header>
+                    <z-card-title [zTitle]="widget.title" />
+                    <z-card-action>
+                      <button
+                        z-button
+                        zType="outline"
+                        zSize="sm"
+                        [zDisabled]="pinnedIds().has(message.id)"
+                        (click)="pin(message)"
+                      >
+                        <ng-icon [name]="pinnedIds().has(message.id) ? 'lucideCheck' : 'lucidePin'" />
+                        {{ pinnedIds().has(message.id) ? 'Fixat' : 'Fixează' }}
+                      </button>
+                    </z-card-action>
+                  </z-card-header>
+                  <z-card-content>
+                    <app-ai-widget [widget]="widget" />
+                  </z-card-content>
+                </z-card>
+              }
+
+              @if (message.result?.sql; as sql) {
+                <z-collapsible class="flex flex-col gap-1">
+                  <button z-button z-collapsible-trigger zType="ghost" zSize="sm" class="group w-fit">
+                    Vezi interogarea SQL
+                    <ng-icon name="lucideChevronDown" class="transition-transform group-data-[state=open]:rotate-180" />
+                  </button>
+                  <z-collapsible-content>
+                    <pre class="bg-muted overflow-x-auto rounded-md p-3 font-mono text-xs whitespace-pre-wrap">{{ sql }}</pre>
+                  </z-collapsible-content>
+                </z-collapsible>
+              }
+
+              @if (message.result; as result) {
+                <z-message-footer [zFooter]="footer(result)" />
+              }
+            </z-message-content>
+          </z-message>
+        }
+      }
+
+      @if (pending()) {
+        <z-message>
+          <z-message-content>
+            <p class="shimmer text-muted-foreground text-sm">Compass caută în date și construiește graficul…</p>
+          </z-message-content>
+        </z-message>
+      }
+    </div>
+
+    <form (submit)="onSubmit($event)">
+      <z-input-group>
+        <textarea
+          z-textarea
+          id="assistant-question"
+          aria-label="Întrebarea ta pentru Compass"
+          placeholder="De exemplu: care hotel a avut cel mai mare RevPAR luna trecută?"
+          [formField]="askForm.question"
+          (keydown.enter)="onEnter($event)"
+        ></textarea>
+        <z-input-group-addon zAlign="block-end">
+          <span z-input-group-text>Enter trimite · Shift+Enter rând nou</span>
+          <button
+            type="submit"
+            z-input-group-button
+            zVariant="default"
+            zSize="icon-sm"
+            class="ml-auto"
+            aria-label="Trimite întrebarea"
+            [disabled]="pending() || askForm().invalid()"
+          >
+            <ng-icon name="lucideArrowUp" />
+          </button>
+        </z-input-group-addon>
+      </z-input-group>
+    </form>
+  </z-card-content>
+</z-card>

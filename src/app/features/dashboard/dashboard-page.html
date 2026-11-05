@@ -1,0 +1,67 @@
+<z-sidebar-provider
+  zDefaultOpen="true"
+  class="[--header-height:calc(--spacing(12))] [--sidebar-width:calc(--spacing(72))]"
+>
+  <app-hotel-sidebar [hotels]="hotels.value()" [current]="hotel()" />
+
+  <main z-sidebar-inset>
+    <app-site-header [title]="title()" [aiMode]="health.value()?.ai" />
+
+    <div class="flex flex-1 flex-col">
+      <div class="flex flex-1 flex-col gap-2">
+        <div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+          @if (dashboard.error()) {
+            <div class="px-4 lg:px-6">
+              <z-empty
+                zIcon="lucideX"
+                zTitle="Datele nu s-au încărcat"
+                zDescription="Pornește aplicația cu pnpm dev (sau API-ul separat, cu pnpm run api) și reîncarcă pagina."
+              />
+            </div>
+          } @else if (dashboard.hasValue()) {
+            <app-kpi-cards [kpis]="dashboard.value().kpis" />
+          } @else {
+            <div class="grid grid-cols-1 gap-4 px-4 sm:grid-cols-2 lg:px-6 xl:grid-cols-4">
+              @for (placeholder of [1, 2, 3, 4]; track placeholder) {
+                <z-skeleton class="h-36 rounded-xl" />
+              }
+            </div>
+          }
+
+          <div class="grid grid-cols-1 gap-4 px-4 md:gap-6 lg:px-6 xl:grid-cols-3">
+            <div class="flex min-w-0 flex-col gap-4 md:gap-6 xl:col-span-2">
+              @for (item of pinned.widgets(); track item.id) {
+                <z-card>
+                  <z-card-header>
+                    <z-card-title [zTitle]="item.widget.title" />
+                    <z-card-description [zDescription]="'Generat de AI din întrebarea: ' + item.question" />
+                    <z-card-action>
+                      <button z-button zType="ghost" zSize="icon" aria-label="Scoate de pe dashboard" (click)="pinned.unpin(item.id)">
+                        <ng-icon name="lucideX" />
+                      </button>
+                    </z-card-action>
+                  </z-card-header>
+                  <z-card-content>
+                    <app-ai-widget [widget]="item.widget" />
+                  </z-card-content>
+                </z-card>
+              }
+
+              @if (dashboard.hasValue()) {
+                <app-revpar-chart [data]="dashboard.value().series" />
+                <app-upcoming-table [nights]="dashboard.value().upcoming" />
+              } @else if (!dashboard.error()) {
+                <z-skeleton class="h-96 rounded-xl" />
+                <z-skeleton class="h-96 rounded-xl" />
+              }
+            </div>
+
+            <div class="min-w-0 xl:sticky xl:top-4 xl:self-start">
+              <app-assistant-panel [hotel]="hotel()" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</z-sidebar-provider>
