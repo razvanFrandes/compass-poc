@@ -43,3 +43,8 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 compass-dev.log
+
+# Secrets and Cloudflare local state
+.env
+.dev.vars
+.wrangler/

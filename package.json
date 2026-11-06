@@ -3,12 +3,14 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "concurrently -k -n api,web -c blue,green \"pnpm run api\" \"ng serve\"",
-    "api": "node --watch server/main.ts",
+    "api": "node --env-file-if-exists=.env --watch server/main.ts",
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "typecheck:server": "tsc -p server/tsconfig.json"
+    "typecheck:server": "tsc -p server/tsconfig.json",
+    "typecheck:worker": "tsc -p worker/tsconfig.json",
+    "deploy": "ng build && wrangler deploy"
   },
   "private": true,
   "packageManager": "pnpm@10.28.2",
@@ -20,6 +22,7 @@
     "@angular/forms": "^22.2.0",
     "@angular/platform-browser": "^22.2.0",
     "@angular/router": "^22.2.0",
+    "@anthropic-ai/sdk": "^1.6.0",
     "@electric-sql/pglite": "0.5.15",
     "@hono/node-server": "^2.1.6",
     "@ng-icons/core": "^36.1.0",
@@ -37,6 +40,8 @@
     "@angular/build": "^22.2.6",
     "@angular/cli": "^22.2.6",
     "@angular/compiler-cli": "^22.2.0",
+    "@cloudflare/containers": "^0.3.7",
+    "@cloudflare/workers-types": "^5.20261106.1",
     "@tailwindcss/postcss": "^4.1.12",
     "@types/node": "^26.6.6",
     "concurrently": "^10.0.6",
@@ -46,6 +51,7 @@
     "tailwindcss": "^4.1.12",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "~6.0.2",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.0",
+    "wrangler": "^4.158.0"
   }
 }

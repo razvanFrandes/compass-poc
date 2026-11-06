@@ -1,0 +1,36 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "compass",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "routes": [{ "pattern": "compass.razvanfrandes.com", "custom_domain": true }],
+  "observability": { "enabled": true },
+
+  // The Angular build; everything except /api/* is served from here.
+  "assets": {
+    "directory": "./dist/compass-poc/browser",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+
+  "containers": [
+    {
+      "class_name": "CompassApi",
+      "image": "./Dockerfile",
+      "instance_type": "basic",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "API", "class_name": "CompassApi" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CompassApi"] }],
+
+  // Questions per visitor and for the whole site, per minute.
+  "ratelimits": [
+    { "name": "ASK_PER_IP", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } },
+    { "name": "ASK_GLOBAL", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } }
+  ]
+}

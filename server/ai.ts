@@ -1,7 +1,4 @@
-import { spawn } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import Anthropic from '@anthropic-ai/sdk';
 
 import type { Row } from './db.ts';
 import { BUSINESS_DATE } from './seed.ts';
@@ -56,6 +53,7 @@ const FIELD_LIST = {
     type: 'object',
     properties: { key: { type: 'string' }, label: { type: 'string' } },
     required: ['key', 'label'],
+    additionalProperties: false,
   },
 };
 
@@ -74,15 +72,18 @@ const PLAN_SCHEMA = {
         columns: { ...FIELD_LIST, description: 'Every result column, in display order, with English labels.' },
       },
       required: ['type', 'title', 'x_key', 'series', 'columns'],
+      additionalProperties: false,
     },
   },
   required: ['sql', 'reply', 'widget'],
+  additionalProperties: false,
 };
 
 const ANSWER_SCHEMA = {
   type: 'object',
   properties: { answer: { type: 'string' } },
   required: ['answer'],
+  additionalProperties: false,
 };
 
 const PLAN_PROMPT = `You are Compass, the commercial analyst of Fagus Hotels, a Romanian hotel group.
@@ -125,60 +126,24 @@ If the result is empty, say that there is no data for that question. Do not ment
 const PLAN_MODEL = process.env['COMPASS_PLAN_MODEL'] ?? 'claude-sonnet-5-5';
 const ANSWER_MODEL = process.env['COMPASS_ANSWER_MODEL'] ?? 'claude-haiku-5-5';
 
-/** Runs one headless Claude Code call with no tools, no customizations and a JSON-schema answer. */
-function callClaude<T>(model: string, systemPrompt: string, prompt: string, schema: object, timeoutMs = 90_000): Promise<T> {
-  const cwd = mkdtempSync(join(tmpdir(), 'compass-claude-'));
-  const env = { ...process.env };
-  // A stray API key silently switches billing away from the local subscription.
-  delete env['ANTHROPIC_API_KEY'];
-  delete env['ANTHROPIC_AUTH_TOKEN'];
+let client: Anthropic | undefined;
 
-  const args = [
-    '-p',
-    prompt,
-    '--model',
+/** One Messages API call whose answer is constrained to the given JSON schema. */
+async function callClaude<T>(model: string, system: string, prompt: string, schema: Record<string, unknown>): Promise<T> {
+  client ??= new Anthropic({ timeout: 90_000 });
+  const response = await client.messages.create({
     model,
-    '--output-format',
-    'json',
-    '--safe-mode',
-    '--tools',
-    '',
-    '--no-session-persistence',
-    '--system-prompt',
-    systemPrompt,
-    '--json-schema',
-    JSON.stringify(schema),
-  ];
-
-  return new Promise((resolve, reject) => {
-    const child = spawn('claude', args, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] });
-    let stdout = '';
-    let stderr = '';
-    const timer = setTimeout(() => {
-      child.kill('SIGTERM');
-      reject(new Error(`claude timed out after ${timeoutMs} ms`));
-    }, timeoutMs);
-
-    child.stdout.on('data', (chunk) => (stdout += chunk));
-    child.stderr.on('data', (chunk) => (stderr += chunk));
-    child.on('error', (err) => {
-      clearTimeout(timer);
-      reject(err);
-    });
-    child.on('close', (code) => {
-      clearTimeout(timer);
-      try {
-        const result = JSON.parse(stdout) as { is_error?: boolean; result?: string; structured_output?: T };
-        if (code !== 0 || result.is_error || !result.structured_output) {
-          reject(new Error(`claude failed (exit ${code}): ${result.result ?? stderr}`));
-          return;
-        }
-        resolve(result.structured_output);
-      } catch {
-        reject(new Error(`claude returned invalid JSON (exit ${code}): ${stderr || stdout.slice(0, 500)}`));
-      }
-    });
+    max_tokens: 4000,
+    system,
+    messages: [{ role: 'user', content: prompt }],
+    output_config: { effort: 'low', format: { type: 'json_schema', schema } },
   });
+  if (response.stop_reason === 'refusal' || response.stop_reason === 'max_tokens') {
+    throw new Error(`Claude stopped early: ${response.stop_reason}`);
+  }
+  const text = response.content.find((block) => block.type === 'text');
+  if (!text) throw new Error('Claude returned no text');
+  return JSON.parse(text.text) as T;
 }
 
 function hotelContext(hotel: string): string {
@@ -337,7 +302,7 @@ const MOCK_CASES: readonly MockCase[] = [
     answer: (rows) => {
       const best = [...rows].sort((a, b) => Number(b['cluj']) - Number(a['cluj']))[0];
       return `Here is monthly occupancy for the three hotels over the last 12 months. Cluj's best month was ${best?.['month']}, at ${best?.['cluj']}%. ` +
-        'This answer comes from demo mode because Claude Code is not available.';
+        'This answer comes from demo mode because no Anthropic API key is set.';
     },
   },
 ];

@@ -5,13 +5,15 @@ A dashboard for a fictional hotel group (Fagus Hotels: Cluj, București, Brașov
 - **UI:** Angular 22.2 (zoneless, standalone, signals) + [ZardUI](https://zardui.com) (shadcn for Angular), starting from the `dashboard-01` block.
 - **Theme:** tweakcn "LIT" (`https://tweakcn.com/r/themes/cmp6klh75000104jxgwp9cbog`), applied in `src/styles.css`.
 - **Data:** PGlite (Postgres in WASM), in memory, regenerated on every start (`server/seed.ts`).
-- **AI:** local Claude Code (`claude -p`, on your subscription, no API key), with a demo mode when `claude` is not installed.
+- **AI:** the Claude API through the official SDK (`@anthropic-ai/sdk`), with a demo mode when no API key is set.
+- **Live:** https://compass.razvanfrandes.com (Cloudflare Worker + Container).
 
 ## Getting started
 
 ```bash
 nvm use          # Node 24.22 (Angular CLI 22 needs at least 22.22.3)
 pnpm install
+echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env   # optional; git ignores it
 pnpm dev         # API on :3001 + Angular on :4200
 ```
 
@@ -19,29 +21,30 @@ Open http://localhost:4200.
 
 | Variable | Default | What it does |
 |---|---|---|
+| `ANTHROPIC_API_KEY` | none | Claude API key, read from `.env` locally and from a Worker secret in production |
 | `COMPASS_AI` | detected | `claude` or `mock` (canned answers, no Claude needed) |
 | `COMPASS_PLAN_MODEL` | `claude-sonnet-5-5` | model that writes the SQL and picks the chart |
 | `COMPASS_ANSWER_MODEL` | `claude-haiku-5-5` | model that writes the answer from the result |
 
-On startup the API checks whether the `claude` command is available. If it is, the assistant uses Claude Code with whatever account is logged in on that machine; if not, it falls back to demo mode. The header shows which one is active.
+With `ANTHROPIC_API_KEY` set, the assistant calls the Claude API; without it, it falls back to demo mode. The header shows which one is active.
 
 ## How the data flows
 
 ```
 Angular (httpResource)  ──GET /api/dashboard/:hotel──▶  Hono  ──SQL──▶  PGlite
 Assistant (signals)     ──POST /api/ask──────────────▶  Hono
-                                                         ├─ claude -p (Sonnet): question + schema → { sql, widget }
+                                                         ├─ Claude API (Sonnet): question + schema → { sql, widget }
                                                          ├─ worker thread: SQL in a READ ONLY transaction, then ROLLBACK
-                                                         └─ claude -p (Haiku): rows → answer
+                                                         └─ Claude API (Haiku): rows → answer
                          ◀── { answer, widget, sql, source, durationMs } ──
 ```
 
 - The model never computes numbers: the SQL produces them, and the answer is written only from the returned rows.
-- Every `claude` call runs with `--safe-mode --tools ""` in an empty temporary directory, without `ANTHROPIC_API_KEY` in its environment.
+- Both calls use structured outputs (`output_config.format` with a JSON schema), so the server always gets valid JSON back.
 - Model-written SQL runs in a worker thread with a 5 s limit and a row cap, so a slow query cannot stall the API.
 - If the SQL fails, the model gets the error back and has one attempt to repair it.
 - The last few questions are sent along, so follow-ups ("and for București?") have context.
-- The API listens on 127.0.0.1 only and accepts JSON only, so other websites cannot spend your Claude subscription.
+- The API accepts JSON only, so other websites cannot post to it. Locally it listens on 127.0.0.1; in production it sits behind the Worker, which rate-limits questions (5 per minute per visitor, 30 per minute in total).
 
 ## Where things are
 
@@ -57,9 +60,26 @@ Assistant (signals)     ──POST /api/ask────────────�
 | `features/assistant/pinned-widgets.ts` | charts pinned to the dashboard | singleton service with `@Service()`, shared state with signals |
 | `features/layout/*` | sidebar and header from the block | small components, `host`, `RouterLink` |
 | `core/compass-api.ts` | API types and the `ask` call | `inject(HttpClient)` |
-| `server/*` | Hono API, PGlite, Claude Code integration | — |
+| `server/*` | Hono API, PGlite, Claude API integration | — |
+| `worker/index.ts`, `wrangler.jsonc`, `Dockerfile` | Cloudflare deployment | — |
 
 `src/app/shared/**` is ZardUI source installed by `zard-cli`; it is used, not edited.
+
+## Deploying to Cloudflare
+
+```
+browser ──▶ Worker (compass.razvanfrandes.com)
+              ├─ /*      → static Angular build (Workers static assets)
+              └─ /api/*  → rate limits → Container running server/ (Node 24, PGlite in memory)
+```
+
+```bash
+pnpm exec wrangler login            # once
+pnpm run deploy                     # ng build + wrangler deploy (builds and pushes the Docker image)
+pnpm exec wrangler secret put ANTHROPIC_API_KEY   # once, or: wrangler deploy --secrets-file .env
+```
+
+Containers need the Workers Paid plan and Docker running locally. The container sleeps after 20 idle minutes; the first request after that waits a few seconds while the database is seeded again.
 
 ## Claude Code setup
 
@@ -69,5 +89,5 @@ Assistant (signals)     ──POST /api/ask────────────�
 
 ## Notes
 
-- Claude Code on a personal subscription is for personal use; a product used by others needs an API key.
+- The live site spends the API key on every question. Set a monthly spend limit in the Claude Console.
 - One theme deviation: `--destructive` uses the shadcn v4 values, because ZardUI renders it as text and the theme's values fail WCAG AA.

@@ -1,5 +1,3 @@
-import { spawnSync } from 'node:child_process';
-
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 
@@ -9,12 +7,13 @@ import { openDatabase, type Row } from './db.ts';
 import { SqlRunner } from './sql-runner.ts';
 
 const PORT = Number(process.env['PORT'] ?? 3001);
+// Local by default; the Cloudflare container sets HOST=0.0.0.0 and sits behind the Worker.
+const HOST = process.env['HOST'] ?? '127.0.0.1';
 
 function detectAiMode(): AiMode {
   const requested = process.env['COMPASS_AI'];
   if (requested === 'mock' || requested === 'claude') return requested;
-  const probe = spawnSync('claude', ['--version'], { encoding: 'utf8' });
-  return probe.status === 0 ? 'claude' : 'mock';
+  return process.env['ANTHROPIC_API_KEY'] ? 'claude' : 'mock';
 }
 
 /** Turns of earlier conversation the client may send along with a question. */
@@ -78,7 +77,6 @@ app.post('/api/ask', async (c) => {
   }
 });
 
-// Local only: the API spends the developer's Claude Code subscription.
-serve({ fetch: app.fetch, port: PORT, hostname: '127.0.0.1' }, () => {
-  console.log(`Compass API on http://localhost:${PORT} (AI: ${aiMode})`);
+serve({ fetch: app.fetch, port: PORT, hostname: HOST }, () => {
+  console.log(`Compass API on http://${HOST}:${PORT} (AI: ${aiMode})`);
 });
