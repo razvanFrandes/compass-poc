@@ -26,22 +26,22 @@ const HOTELS: readonly HotelProfile[] = [
     name: 'Fagus Cluj',
     city: 'Cluj-Napoca',
     rooms: 160,
-    segment: 'Business și festivaluri',
+    segment: 'Business & festivals',
     baseAdr: 88,
     weekday: [0.74, 0.82, 0.86, 0.84, 0.7, 0.58, 0.5],
     month: [0.78, 0.85, 0.92, 0.98, 1.02, 1.04, 1.06, 1.08, 1.04, 1.02, 0.96, 0.82],
-    channelMix: { Direct: 0.24, 'Booking.com': 0.34, Expedia: 0.1, Corporate: 0.22, Grupuri: 0.1 },
+    channelMix: { Direct: 0.24, 'Booking.com': 0.34, Expedia: 0.1, Corporate: 0.22, Groups: 0.1 },
   },
   {
     id: 'BUC',
     name: 'Fagus București',
     city: 'București',
     rooms: 220,
-    segment: 'Corporate și MICE',
+    segment: 'Corporate & MICE',
     baseAdr: 112,
     weekday: [0.82, 0.9, 0.92, 0.88, 0.72, 0.52, 0.46],
     month: [0.8, 0.88, 0.96, 1, 1.02, 0.98, 0.9, 0.78, 1.04, 1.08, 1.04, 0.86],
-    channelMix: { Direct: 0.18, 'Booking.com': 0.26, Expedia: 0.12, Corporate: 0.3, Grupuri: 0.14 },
+    channelMix: { Direct: 0.18, 'Booking.com': 0.26, Expedia: 0.12, Corporate: 0.3, Groups: 0.14 },
   },
   {
     id: 'BRV',
@@ -52,7 +52,7 @@ const HOTELS: readonly HotelProfile[] = [
     baseAdr: 96,
     weekday: [0.52, 0.5, 0.54, 0.62, 0.84, 0.94, 0.78],
     month: [1.04, 1.06, 0.92, 0.84, 0.92, 1, 1.1, 1.14, 0.98, 0.9, 0.84, 1.08],
-    channelMix: { Direct: 0.3, 'Booking.com': 0.42, Expedia: 0.14, Corporate: 0.06, Grupuri: 0.08 },
+    channelMix: { Direct: 0.3, 'Booking.com': 0.42, Expedia: 0.14, Corporate: 0.06, Groups: 0.08 },
   },
 ];
 
@@ -74,18 +74,18 @@ const EVENTS: readonly DemandEvent[] = [
   { hotelId: 'CLJ', name: 'TIFF', start: '2026-06-12', end: '2026-06-21', lift: 0.12, adrLift: 1.15 },
   { hotelId: 'CLJ', name: 'Electric Castle', start: '2026-07-15', end: '2026-07-19', lift: 0.3, adrLift: 1.5 },
   { hotelId: 'CLJ', name: 'UNTOLD', start: '2026-08-06', end: '2026-08-09', lift: 0.4, adrLift: 2 },
-  { hotelId: 'CLJ', name: 'Târgul de Crăciun', start: '2026-11-27', end: '2026-12-23', lift: 0.08, adrLift: 1.05 },
+  { hotelId: 'CLJ', name: 'Christmas Market', start: '2026-11-27', end: '2026-12-23', lift: 0.08, adrLift: 1.05 },
   { hotelId: 'BUC', name: 'Romanian Tech Summit', start: '2025-10-21', end: '2025-10-23', lift: 0.18, adrLift: 1.3 },
   { hotelId: 'BUC', name: 'Romanian Tech Summit', start: '2026-10-20', end: '2026-10-22', lift: 0.18, adrLift: 1.35 },
-  { hotelId: 'BUC', name: 'Concert Arena Națională', start: '2026-06-27', end: '2026-06-28', lift: 0.25, adrLift: 1.4 },
-  { hotelId: 'BUC', name: 'Congres medical ERS', start: '2026-11-17', end: '2026-11-20', lift: 0.2, adrLift: 1.3 },
+  { hotelId: 'BUC', name: 'Arena Națională concert', start: '2026-06-27', end: '2026-06-28', lift: 0.25, adrLift: 1.4 },
+  { hotelId: 'BUC', name: 'ERS medical congress', start: '2026-11-17', end: '2026-11-20', lift: 0.2, adrLift: 1.3 },
   { hotelId: 'BUC', name: 'Gaudeamus', start: '2026-11-25', end: '2026-11-29', lift: 0.08, adrLift: 1.05 },
-  { hotelId: 'BRV', name: 'Târgul de Crăciun', start: '2025-11-28', end: '2025-12-23', lift: 0.15, adrLift: 1.15 },
-  { hotelId: 'BRV', name: 'Revelion', start: '2025-12-30', end: '2026-01-01', lift: 0.3, adrLift: 1.8 },
+  { hotelId: 'BRV', name: 'Christmas Market', start: '2025-11-28', end: '2025-12-23', lift: 0.15, adrLift: 1.15 },
+  { hotelId: 'BRV', name: 'New Year\'s Eve', start: '2025-12-30', end: '2026-01-01', lift: 0.3, adrLift: 1.8 },
   { hotelId: 'BRV', name: 'Cerbul de Aur', start: '2026-08-27', end: '2026-08-30', lift: 0.2, adrLift: 1.3 },
-  { hotelId: 'BRV', name: 'Târgul de Crăciun', start: '2026-11-27', end: '2026-12-23', lift: 0.15, adrLift: 1.18 },
-  { hotelId: 'BRV', name: 'Revelion', start: '2026-12-30', end: '2027-01-01', lift: 0.3, adrLift: 1.85 },
-  { hotelId: 'BRV', name: 'Sezon de schi Poiana Brașov', start: '2027-01-08', end: '2027-02-28', lift: 0.1, adrLift: 1.12 },
+  { hotelId: 'BRV', name: 'Christmas Market', start: '2026-11-27', end: '2026-12-23', lift: 0.15, adrLift: 1.18 },
+  { hotelId: 'BRV', name: 'New Year\'s Eve', start: '2026-12-30', end: '2027-01-01', lift: 0.3, adrLift: 1.85 },
+  { hotelId: 'BRV', name: 'Poiana Brașov ski season', start: '2027-01-08', end: '2027-02-28', lift: 0.1, adrLift: 1.12 },
 ];
 
 const COMPETITORS: Readonly<Record<string, readonly [string, number][]>> = {
@@ -176,7 +176,7 @@ export async function seed(db: PGlite): Promise<void> {
     await db.query('INSERT INTO events VALUES ($1, $2, $3, $4)', [e.hotelId, e.name, e.start, e.end]);
   }
 
-  const commission: Record<string, number> = { Direct: 0, 'Booking.com': 17, Expedia: 18, Corporate: 0, Grupuri: 0 };
+  const commission: Record<string, number> = { Direct: 0, 'Booking.com': 17, Expedia: 18, Corporate: 0, Groups: 0 };
   const business = toDate(BUSINESS_DATE).getTime();
   const daily: unknown[][] = [];
   const channels: unknown[][] = [];
@@ -218,7 +218,7 @@ export async function seed(db: PGlite): Promise<void> {
           const sold = i === names.length - 1 ? left : Math.min(left, Math.round(roomsSold * h.channelMix[channel] * (0.85 + rand() * 0.3)));
           left -= sold;
           // Negotiated channels sell below BAR, direct slightly above.
-          const weight = channel === 'Corporate' || channel === 'Grupuri' ? 0.88 : channel === 'Direct' ? 1.02 : 1;
+          const weight = channel === 'Corporate' || channel === 'Groups' ? 0.88 : channel === 'Direct' ? 1.02 : 1;
           return { channel, sold, raw: sold * weight };
         });
         // Scale so the channels add up to the night's revenue exactly; the last one takes the rounding.

@@ -57,7 +57,7 @@ export default class DashboardPage {
 
   protected readonly title = computed(() => {
     const id = this.hotel();
-    if (id === 'all') return 'Toate hotelurile';
+    if (id === 'all') return 'All hotels';
     return this.hotelList().find((h) => h.id === id)?.name ?? id;
   });
 }

@@ -1,61 +1,73 @@
 # Compass POC
 
-Dashboard pentru un grup hotelier fictiv (Fagus Hotels: Cluj, București, Brașov) cu un asistent AI care răspunde din baza de date și construiește graficul potrivit.
+A dashboard for a fictional hotel group (Fagus Hotels: Cluj, București, Brașov) with an AI assistant that answers from the database and builds the right chart for the question.
 
-- **UI:** Angular 22.2 (zoneless, standalone, signals) + [ZardUI](https://zardui.com) (shadcn pentru Angular), pornind de la block-ul `dashboard-01`.
-- **Temă:** tweakcn „LIT” (`https://tweakcn.com/r/themes/cmp6klh75000104jxgwp9cbog`), aplicată în `src/styles.css`.
-- **Date:** PGlite (Postgres în WASM), în memorie, generat la fiecare pornire (`server/seed.ts`).
-- **AI:** Claude Code local (`claude -p`, pe abonament, fără API key), cu mod demo dacă `claude` lipsește.
+- **UI:** Angular 22.2 (zoneless, standalone, signals) + [ZardUI](https://zardui.com) (shadcn for Angular), starting from the `dashboard-01` block.
+- **Theme:** tweakcn "LIT" (`https://tweakcn.com/r/themes/cmp6klh75000104jxgwp9cbog`), applied in `src/styles.css`.
+- **Data:** PGlite (Postgres in WASM), in memory, regenerated on every start (`server/seed.ts`).
+- **AI:** local Claude Code (`claude -p`, on your subscription, no API key), with a demo mode when `claude` is not installed.
 
-## Pornire
+## Getting started
 
 ```bash
-nvm use          # Node 24.22 (Angular CLI 22 cere minim 22.22.3)
+nvm use          # Node 24.22 (Angular CLI 22 needs at least 22.22.3)
 pnpm install
-pnpm dev         # API pe :3001 + Angular pe :4200
+pnpm dev         # API on :3001 + Angular on :4200
 ```
 
-Deschide http://localhost:4200.
+Open http://localhost:4200.
 
-| Variabilă | Implicit | Ce face |
+| Variable | Default | What it does |
 |---|---|---|
-| `COMPASS_AI` | detectat | `claude` sau `mock` (răspunsuri predefinite, fără Claude) |
-| `COMPASS_PLAN_MODEL` | `claude-sonnet-5-5` | modelul care scrie SQL-ul și alege graficul |
-| `COMPASS_ANSWER_MODEL` | `claude-haiku-5-5` | modelul care scrie răspunsul din rezultat |
+| `COMPASS_AI` | detected | `claude` or `mock` (canned answers, no Claude needed) |
+| `COMPASS_PLAN_MODEL` | `claude-sonnet-5-5` | model that writes the SQL and picks the chart |
+| `COMPASS_ANSWER_MODEL` | `claude-haiku-5-5` | model that writes the answer from the result |
 
-## Cum curg datele
+On startup the API checks whether the `claude` command is available. If it is, the assistant uses Claude Code with whatever account is logged in on that machine; if not, it falls back to demo mode. The header shows which one is active.
+
+## How the data flows
 
 ```
 Angular (httpResource)  ──GET /api/dashboard/:hotel──▶  Hono  ──SQL──▶  PGlite
-Asistent (signals)      ──POST /api/ask──────────────▶  Hono
-                                                         ├─ claude -p (Sonnet): întrebare + schemă → { sql, widget }
-                                                         ├─ PGlite: SQL în tranzacție READ ONLY, apoi ROLLBACK
-                                                         └─ claude -p (Haiku): rânduri → răspuns în română
+Assistant (signals)     ──POST /api/ask──────────────▶  Hono
+                                                         ├─ claude -p (Sonnet): question + schema → { sql, widget }
+                                                         ├─ worker thread: SQL in a READ ONLY transaction, then ROLLBACK
+                                                         └─ claude -p (Haiku): rows → answer
                          ◀── { answer, widget, sql, source, durationMs } ──
 ```
 
-- Modelul nu calculează cifre: le scoate SQL-ul, iar răspunsul se scrie doar din rândurile întoarse.
-- Fiecare apel `claude` rulează cu `--safe-mode --tools ""` într-un director temporar gol, fără `ANTHROPIC_API_KEY` în mediu.
-- Dacă SQL-ul dă eroare, modelul primește eroarea și are o singură încercare de reparare.
+- The model never computes numbers: the SQL produces them, and the answer is written only from the returned rows.
+- Every `claude` call runs with `--safe-mode --tools ""` in an empty temporary directory, without `ANTHROPIC_API_KEY` in its environment.
+- Model-written SQL runs in a worker thread with a 5 s limit and a row cap, so a slow query cannot stall the API.
+- If the SQL fails, the model gets the error back and has one attempt to repair it.
+- The last few questions are sent along, so follow-ups ("and for București?") have context.
+- The API listens on 127.0.0.1 only and accepts JSON only, so other websites cannot spend your Claude subscription.
 
-## Ce găsești unde
+## Where things are
 
-| Fișier | Rol | Concept Angular |
+| File | Role | Angular concept |
 |---|---|---|
-| `src/app/app.config.ts` | providers: HTTP, router, locale `ro`, ZardUI, ECharts | DI, `ApplicationConfig` |
-| `src/app/app.routes.ts` | `/:hotel`, încărcat lazy | routing, `loadComponent`, `withComponentInputBinding` |
-| `features/dashboard/dashboard-page.ts` | pagina; citește datele cu `httpResource` | `input()` din ruta, `computed()`, `httpResource` |
-| `features/dashboard/kpi-cards.ts` | cele 4 carduri KPI | `input.required()`, `formatNumber`/`formatCurrency` |
-| `features/dashboard/revpar-chart.ts` | graficul RevPAR (z-chart) | `signal()` local, `computed()` |
-| `features/dashboard/upcoming-table.ts` | următoarele 14 nopți (z-table) | pipes: `date`, `number`, `currency`, `@let` |
-| `features/assistant/assistant-panel.ts` | chatul cu Compass | Signal Forms (`form`, `[formField]`), `afterRenderEffect`, `viewChild` |
-| `features/assistant/pinned-widgets.ts` | graficele fixate pe dashboard | serviciu singleton `@Service()`, stare partajată cu signals |
-| `features/layout/*` | sidebar și header din block | componente mici, `host`, `RouterLink` |
-| `core/compass-api.ts` | tipurile API-ului și apelul `ask` | `inject(HttpClient)` |
-| `server/*` | API-ul Hono, PGlite, Claude Code | — |
+| `src/app/app.config.ts` | providers: HTTP, router, locale, ZardUI, ECharts | DI, `ApplicationConfig` |
+| `src/app/app.routes.ts` | `/:hotel`, lazy loaded | routing, `loadComponent`, `withComponentInputBinding` |
+| `features/dashboard/dashboard-page.ts` | the page; loads data with `httpResource` | route `input()`, `computed()`, `httpResource` |
+| `features/dashboard/kpi-cards.ts` | the four KPI cards | `input.required()`, `formatNumber` / `formatCurrency` |
+| `features/dashboard/revpar-chart.ts` | the RevPAR chart (z-chart) | local `signal()`, `computed()` |
+| `features/dashboard/upcoming-table.ts` | the next 14 nights (z-table) | pipes: `date`, `number`, `currency`, `@let` |
+| `features/assistant/assistant-panel.ts` | the chat with Compass | Signal Forms (`form`, `[formField]`), `afterRenderEffect`, `viewChild` |
+| `features/assistant/pinned-widgets.ts` | charts pinned to the dashboard | singleton service with `@Service()`, shared state with signals |
+| `features/layout/*` | sidebar and header from the block | small components, `host`, `RouterLink` |
+| `core/compass-api.ts` | API types and the `ask` call | `inject(HttpClient)` |
+| `server/*` | Hono API, PGlite, Claude Code integration | — |
 
-## Setup pentru Claude Code
+`src/app/shared/**` is ZardUI source installed by `zard-cli`; it is used, not edited.
 
-- `CLAUDE.md`: regulile Angular 22 generate de `ng new --ai-config=claude-code`.
-- `.claude/skills/zard`: skill-ul oficial ZardUI (reguli de stil, compoziție, iconuri).
-- `.mcp.json`: serverele MCP `angular-cli` și `zard-ui`.
+## Claude Code setup
+
+- `CLAUDE.md`: Angular 22 rules generated by `ng new --ai-config=claude-code`.
+- `.claude/skills/zard`: the official ZardUI skill (styling, composition and icon rules).
+- `.mcp.json`: the `angular-cli` and `zard-ui` MCP servers.
+
+## Notes
+
+- Claude Code on a personal subscription is for personal use; a product used by others needs an API key.
+- One theme deviation: `--destructive` uses the shadcn v4 values, because ZardUI renders it as text and the theme's values fail WCAG AA.

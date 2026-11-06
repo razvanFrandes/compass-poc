@@ -17,8 +17,8 @@ import type { Dashboard } from '../../core/compass-api';
     <z-card class="pt-0">
       <z-card-header class="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
         <div class="grid flex-1 gap-1">
-          <z-card-title zTitle="RevPAR zilnic" />
-          <z-card-description zDescription="Venit pe cameră disponibilă, față de aceeași zi a săptămânii de anul trecut" />
+          <z-card-title zTitle="Daily RevPAR" />
+          <z-card-description zDescription="Revenue per available room, against the same weekday last year" />
         </div>
 
         <z-card-action class="flex items-center gap-2">
@@ -72,9 +72,9 @@ export class RevparChart {
   ];
 
   protected readonly ranges = [
-    { value: '90d', label: 'Ultimele 3 luni' },
-    { value: '30d', label: 'Ultimele 30 de zile' },
-    { value: '7d', label: 'Ultimele 7 zile' },
+    { value: '90d', label: 'Last 3 months' },
+    { value: '30d', label: 'Last 30 days' },
+    { value: '7d', label: 'Last 7 days' },
   ];
 
   protected readonly range = signal('90d');
@@ -92,8 +92,8 @@ export class RevparChart {
   }
 
   protected readonly shortDate = (value: string) =>
-    new Date(`${value}T00:00:00`).toLocaleDateString('ro-RO', { month: 'short', day: 'numeric' });
+    new Date(`${value}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   protected readonly longDate = (value: string) =>
-    new Date(`${value}T00:00:00`).toLocaleDateString('ro-RO', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    new Date(`${value}T00:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }

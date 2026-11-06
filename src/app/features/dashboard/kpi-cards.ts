@@ -10,10 +10,10 @@ import { ZardCardImports } from '@/shared/components/card/card.imports';
 import type { Kpi, KpiKey } from '../../core/compass-api';
 
 const LABELS: Record<KpiKey, string> = {
-  occupancy: 'Grad de ocupare',
-  adr: 'ADR (tarif mediu)',
+  occupancy: 'Occupancy',
+  adr: 'ADR (average rate)',
   revpar: 'RevPAR',
-  revenue: 'Venit din camere',
+  revenue: 'Room revenue',
 };
 
 /** The four section cards from the dashboard-01 block, fed with the last 30 days against last year. */
@@ -41,10 +41,10 @@ const LABELS: Record<KpiKey, string> = {
 
           <z-card-footer class="flex-col items-start gap-1.5 bg-transparent text-sm">
             <div class="line-clamp-1 flex gap-2 font-medium">
-              {{ card.up ? 'Peste anul trecut' : 'Sub anul trecut' }}
+              {{ card.up ? 'Up on last year' : 'Down on last year' }}
               <ng-icon [name]="card.up ? 'lucideTrendingUp' : 'lucideTrendingDown'" class="size-4" />
             </div>
-            <div class="text-muted-foreground">Anul trecut: {{ card.lastYear }}</div>
+            <div class="text-muted-foreground">Last year: {{ card.lastYear }}</div>
           </z-card-footer>
         </z-card>
       }

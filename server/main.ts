@@ -45,14 +45,14 @@ app.get('/api/hotels', (c) => c.json(hotels));
 
 app.get('/api/dashboard/:hotel', async (c) => {
   const hotel = c.req.param('hotel');
-  if (!hotelIds.has(hotel)) return c.json({ error: `Hotel necunoscut: ${hotel}` }, 404);
+  if (!hotelIds.has(hotel)) return c.json({ error: `Unknown hotel: ${hotel}` }, 404);
   return c.json(await loadDashboard(db, hotel));
 });
 
 app.post('/api/ask', async (c) => {
   // A JSON content type forces a CORS preflight, so other web pages cannot post here.
   if (!c.req.header('content-type')?.startsWith('application/json')) {
-    return c.json({ error: 'Trimite cererea ca application/json.' }, 415);
+    return c.json({ error: 'Send the request as application/json.' }, 415);
   }
   const body: Record<string, unknown> = await c.req
     .json<unknown>()
@@ -61,10 +61,10 @@ app.post('/api/ask', async (c) => {
   const question = typeof body['question'] === 'string' ? body['question'].trim() : '';
   const hotel = typeof body['hotel'] === 'string' && hotelIds.has(body['hotel']) ? body['hotel'] : 'all';
   if (!question || question.length > 500) {
-    return c.json({ error: 'Scrie o întrebare de cel mult 500 de caractere.' }, 400);
+    return c.json({ error: 'Write a question of at most 500 characters.' }, 400);
   }
   if (askInFlight) {
-    return c.json({ error: 'Compass încă răspunde la întrebarea anterioară. Încearcă peste câteva secunde.' }, 429);
+    return c.json({ error: 'Compass is still answering the previous question. Try again in a few seconds.' }, 429);
   }
 
   askInFlight = true;
@@ -72,7 +72,7 @@ app.post('/api/ask', async (c) => {
     return c.json(await ask(sqlRunner, aiMode, question, hotel, parseHistory(body['history'])));
   } catch (err) {
     console.error('[ask]', err);
-    return c.json({ error: 'Asistentul nu a putut răspunde. Încearcă din nou sau reformulează întrebarea.' }, 502);
+    return c.json({ error: 'The assistant could not answer. Try again or rephrase the question.' }, 502);
   } finally {
     askInFlight = false;
   }

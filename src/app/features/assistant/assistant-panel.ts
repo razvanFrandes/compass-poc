@@ -39,10 +39,10 @@ interface ChatMessage {
 }
 
 const SUGGESTIONS = [
-  'Compară ocuparea în Cluj și Brașov în august 2026 față de august 2025',
-  'Cum arată mixul de canale în ultimele 90 de zile, după comision?',
-  'În ce nopți din următoarele 30 de zile suntem sub concurență?',
-  'Ce pickup avem pe weekendurile din decembrie, pe hoteluri?',
+  'Compare occupancy in Cluj and Brașov in August 2026 vs August 2025',
+  'What does the channel mix look like over the last 90 days, net of commission?',
+  'Which nights in the next 30 days are we priced below the competition?',
+  'What pickup do we have on December weekends, by hotel?',
 ];
 
 /** The chat with Compass: asks the API, shows the answer, the generated widget and the SQL behind it. */
@@ -123,7 +123,7 @@ export class AssistantPanel {
       const message =
         err instanceof HttpErrorResponse && typeof err.error?.error === 'string'
           ? err.error.error
-          : 'Nu am putut contacta serverul. Verifică dacă API-ul rulează pe portul 3001.';
+          : 'Could not reach the server. Check that the API is running on port 3001.';
       this.push({ role: 'assistant', text: message, error: true });
     } finally {
       this.pending.set(false);
@@ -137,7 +137,7 @@ export class AssistantPanel {
 
   protected footer(result: AskResult): string {
     const seconds = formatNumber(result.durationMs / 1000, this.locale, '1.1-1');
-    return `${result.source === 'claude' ? 'Claude Code' : 'Mod demo'} · ${seconds} s`;
+    return `${result.source === 'claude' ? 'Claude Code' : 'Demo mode'} · ${seconds} s`;
   }
 
   /** The last answered questions, oldest first, so the server can resolve follow-ups. */

@@ -20,7 +20,7 @@ import { EDarkModes, ZardDarkMode } from '@/shared/services/dark-mode';
       class="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)"
     >
       <div class="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
-        <button z-sidebar-trigger class="-ml-1" aria-label="Arată sau ascunde meniul"></button>
+        <button z-sidebar-trigger class="-ml-1" aria-label="Toggle sidebar"></button>
 
         <z-separator
           zOrientation="vertical"
@@ -32,7 +32,7 @@ import { EDarkModes, ZardDarkMode } from '@/shared/services/dark-mode';
         <div class="ml-auto flex items-center gap-2">
           @if (aiMode(); as mode) {
             <z-badge [zType]="mode === 'claude' ? 'secondary' : 'outline'">
-              {{ mode === 'claude' ? 'AI: Claude Code' : 'AI: mod demo' }}
+              {{ mode === 'claude' ? 'AI: Claude Code' : 'AI: demo mode' }}
             </z-badge>
           }
           <button
@@ -40,7 +40,7 @@ import { EDarkModes, ZardDarkMode } from '@/shared/services/dark-mode';
             zType="ghost"
             zSize="icon"
             (click)="toggleTheme()"
-            [attr.aria-label]="isDark() ? 'Comută pe tema luminoasă' : 'Comută pe tema întunecată'"
+            [attr.aria-label]="isDark() ? 'Switch to light theme' : 'Switch to dark theme'"
           >
             <ng-icon [name]="isDark() ? 'lucideSun' : 'lucideMoon'" />
           </button>

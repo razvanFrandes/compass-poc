@@ -15,9 +15,9 @@ import type { Dashboard } from '../../core/compass-api';
   template: `
     <z-card>
       <z-card-header>
-        <z-card-title zTitle="Următoarele 14 nopți" />
+        <z-card-title zTitle="Next 14 nights" />
         <z-card-description
-          zDescription="Rezervări deja confirmate (on the books), pickup-ul din ultimele 7 zile și tariful nostru față de mediana concurenței"
+          zDescription="Rooms on the books, pickup over the last 7 days and our rate against the competitor median"
         />
       </z-card-header>
 
@@ -26,20 +26,20 @@ import type { Dashboard } from '../../core/compass-api';
           <table z-table>
             <thead z-table-header class="sticky top-0 z-10">
               <tr z-table-row>
-                <th z-table-head>Noaptea</th>
-                <th z-table-head class="text-right">Ocupare</th>
-                <th z-table-head class="text-right">Pickup 7 zile</th>
-                <th z-table-head class="text-right">Tariful nostru</th>
-                <th z-table-head class="text-right">Concurența</th>
-                <th z-table-head>Poziție</th>
-                <th z-table-head>Eveniment</th>
+                <th z-table-head>Night</th>
+                <th z-table-head class="text-right">Occupancy</th>
+                <th z-table-head class="text-right">7-day pickup</th>
+                <th z-table-head class="text-right">Our rate</th>
+                <th z-table-head class="text-right">Competitors</th>
+                <th z-table-head>Position</th>
+                <th z-table-head>Event</th>
               </tr>
             </thead>
             <tbody z-table-body>
               @for (night of nights(); track night.date) {
                 @let gap = (night.bar_rate / night.comp_median - 1) * 100;
                 <tr z-table-row>
-                  <td z-table-cell class="font-medium">{{ night.date | date: 'EEE, d MMM' }}</td>
+                  <td z-table-cell class="font-medium">{{ night.date | date: 'EEE, MMM d' }}</td>
                   <td z-table-cell class="text-right tabular-nums">
                     {{ night.occupancy_otb | number: '1.1-1' }}%
                     <span class="text-muted-foreground">({{ night.rooms_otb }})</span>
@@ -49,7 +49,7 @@ import type { Dashboard } from '../../core/compass-api';
                   <td z-table-cell class="text-right tabular-nums">{{ night.comp_median | currency: 'EUR' : 'symbol-narrow' : '1.0-0' }}</td>
                   <td z-table-cell>
                     <z-badge [zType]="gap < 0 ? 'secondary' : 'outline'">
-                      {{ gap < 0 ? 'Sub piață' : 'Peste piață' }} {{ (gap < 0 ? -gap : gap) | number: '1.1-1' }}%
+                      {{ gap < 0 ? 'Below market' : 'Above market' }} {{ (gap < 0 ? -gap : gap) | number: '1.1-1' }}%
                     </z-badge>
                   </td>
                   <td z-table-cell>

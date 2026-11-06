@@ -63,15 +63,15 @@ const PLAN_SCHEMA = {
   type: 'object',
   properties: {
     sql: { type: 'string', description: 'One read-only PostgreSQL SELECT, or an empty string when no data is needed.' },
-    reply: { type: 'string', description: 'Only when sql is empty: a short answer in Romanian.' },
+    reply: { type: 'string', description: 'Only when sql is empty: a short answer in English.' },
     widget: {
       type: 'object',
       properties: {
         type: { type: 'string', enum: ['bar', 'line', 'area', 'table'] },
-        title: { type: 'string', description: 'Short Romanian title.' },
+        title: { type: 'string', description: 'Short English title.' },
         x_key: { type: 'string', description: 'Result column for the category or date axis.' },
-        series: { ...FIELD_LIST, description: 'Numeric result columns to plot, with Romanian labels.' },
-        columns: { ...FIELD_LIST, description: 'Every result column, in display order, with Romanian labels.' },
+        series: { ...FIELD_LIST, description: 'Numeric result columns to plot, with English labels.' },
+        columns: { ...FIELD_LIST, description: 'Every result column, in display order, with English labels.' },
       },
       required: ['type', 'title', 'x_key', 'series', 'columns'],
     },
@@ -94,10 +94,10 @@ Currency: EUR.
 Schema:
 - hotels(id text, name text, city text, rooms int, segment text). ids: 'CLJ' Fagus Cluj (160 rooms), 'BUC' Fagus București (220 rooms), 'BRV' Fagus Brașov (90 rooms).
 - daily_performance(hotel_id, stay_date date, rooms_available int, rooms_sold int, room_revenue numeric, rooms_sold_7d_ago int). One row per hotel per night from 2025-01-01 to 2027-02-28. For future dates rooms_sold is on-the-books and rooms_sold - rooms_sold_7d_ago is the 7-day pickup.
-- channel_performance(hotel_id, stay_date, channel text, rooms_sold int, room_revenue numeric, commission_pct numeric). Actuals only. Channels: 'Direct', 'Booking.com', 'Expedia', 'Corporate', 'Grupuri'.
+- channel_performance(hotel_id, stay_date, channel text, rooms_sold int, room_revenue numeric, commission_pct numeric). Actuals only. Channels: 'Direct', 'Booking.com', 'Expedia', 'Corporate', 'Groups'.
 - rates(hotel_id, stay_date, bar_rate numeric). Our published rate, next 120 days.
 - competitor_rates(hotel_id, stay_date, competitor text, rate numeric). Three competitors per hotel, next 120 days.
-- events(hotel_id, name text, start_date date, end_date date). City events that drive demand (UNTOLD, Electric Castle, Târgul de Crăciun, congresses).
+- events(hotel_id, name text, start_date date, end_date date). City events that drive demand (UNTOLD, Electric Castle, Christmas Market, congresses).
 
 Metric definitions (always compute them from sums, never average ratios):
 - occupancy % = 100 * sum(rooms_sold) / sum(rooms_available)
@@ -115,10 +115,10 @@ Rules:
 - When the user's current hotel filter is not 'all', restrict to that hotel unless the question names other hotels.
 - Widget: 'line' or 'area' for time series, 'bar' for comparisons between hotels, channels or months, 'table' for lists. For a comparison of several hotels over time, return one column per hotel (pivot with sum(...) FILTER (WHERE ...)).
 - x_key must be a column of the result; series must be numeric columns of the result; columns lists every result column.
-- If the question cannot be answered from this data, return sql = "" and explain in reply (Romanian).`;
+- If the question cannot be answered from this data, return sql = "" and explain in reply (English).`;
 
 const ANSWER_PROMPT = `You are Compass, the commercial analyst of Fagus Hotels.
-Write the answer to the user's question in Romanian, in 2 to 4 short sentences, based ONLY on the query result you are given.
+Write the answer to the user's question in English, in 2 to 4 short sentences, based ONLY on the query result you are given.
 Use only numbers that appear in the result (you may round them). Mention hotel names and dates as they appear. Currency is EUR.
 If the result is empty, say that there is no data for that question. Do not mention SQL.`;
 
@@ -192,7 +192,7 @@ function historyContext(history: readonly Turn[]): string {
 }
 
 function noDataAnswer(plan: Plan): Omit<AskResult, 'durationMs'> {
-  return { answer: plan.reply || 'Nu pot răspunde la asta din datele disponibile.', widget: null, sql: null, source: 'claude' };
+  return { answer: plan.reply || 'I cannot answer that from the available data.', widget: null, sql: null, source: 'claude' };
 }
 
 function toWidget(plan: Plan, rows: Row[]): Widget | null {
@@ -245,40 +245,40 @@ const hotelFilter = (hotel: string, column = 'h.id') => (hotel === 'all' ? 'TRUE
 
 const MOCK_CASES: readonly MockCase[] = [
   {
-    match: /canal|channel|booking|expedia|comision/i,
+    match: /channel|booking|expedia|commission|canal/i,
     plan: (hotel) => ({
       sql: `SELECT c.channel,
-                   round(sum(c.room_revenue)::numeric, 0) AS venit,
-                   round(sum(c.room_revenue * (1 - c.commission_pct / 100))::numeric, 0) AS venit_net
+                   round(sum(c.room_revenue)::numeric, 0) AS revenue,
+                   round(sum(c.room_revenue * (1 - c.commission_pct / 100))::numeric, 0) AS net_revenue
             FROM channel_performance c JOIN hotels h ON h.id = c.hotel_id
             WHERE ${hotelFilter(hotel)} AND c.stay_date BETWEEN DATE '${BUSINESS_DATE}' - 90 AND DATE '${BUSINESS_DATE}' - 1
-            GROUP BY c.channel ORDER BY venit DESC`,
+            GROUP BY c.channel ORDER BY revenue DESC`,
       reply: '',
       widget: {
         type: 'bar',
-        title: 'Venit pe canal, ultimele 90 de zile',
+        title: 'Revenue by channel, last 90 days',
         x_key: 'channel',
         series: [
-          { key: 'venit', label: 'Venit brut' },
-          { key: 'venit_net', label: 'Venit net' },
+          { key: 'revenue', label: 'Gross revenue' },
+          { key: 'net_revenue', label: 'Net revenue' },
         ],
         columns: [
-          { key: 'channel', label: 'Canal' },
-          { key: 'venit', label: 'Venit brut (EUR)' },
-          { key: 'venit_net', label: 'Venit net (EUR)' },
+          { key: 'channel', label: 'Channel' },
+          { key: 'revenue', label: 'Gross revenue (EUR)' },
+          { key: 'net_revenue', label: 'Net revenue (EUR)' },
         ],
       },
     }),
     answer: (rows) =>
-      `În ultimele 90 de zile, cel mai mare venit a venit din ${rows[0]?.['channel']} (${rows[0]?.['venit']} EUR brut, ${rows[0]?.['venit_net']} EUR net după comision). ` +
-      `Pe ultimul loc este ${rows.at(-1)?.['channel']}, cu ${rows.at(-1)?.['venit']} EUR.`,
+      `Over the last 90 days the largest share of revenue came from ${rows[0]?.['channel']} (${rows[0]?.['revenue']} EUR gross, ${rows[0]?.['net_revenue']} EUR net of commission). ` +
+      `The smallest was ${rows.at(-1)?.['channel']}, with ${rows.at(-1)?.['revenue']} EUR.`,
   },
   {
-    match: /concuren|comp set|competitor|tarif/i,
+    match: /competit|comp set|rate|concuren/i,
     plan: (hotel) => ({
-      sql: `SELECT to_char(r.stay_date, 'YYYY-MM-DD') AS data,
-                   round(avg(r.bar_rate)::numeric, 2) AS tariful_nostru,
-                   round(avg(c.rate)::numeric, 2) AS media_concurentei
+      sql: `SELECT to_char(r.stay_date, 'YYYY-MM-DD') AS date,
+                   round(avg(r.bar_rate)::numeric, 2) AS our_rate,
+                   round(avg(c.rate)::numeric, 2) AS competitor_avg
             FROM rates r
             JOIN competitor_rates c USING (hotel_id, stay_date)
             JOIN hotels h ON h.id = r.hotel_id
@@ -287,57 +287,57 @@ const MOCK_CASES: readonly MockCase[] = [
       reply: '',
       widget: {
         type: 'line',
-        title: 'Tariful nostru față de concurență, următoarele 30 de zile',
-        x_key: 'data',
+        title: 'Our rate vs competitors, next 30 days',
+        x_key: 'date',
         series: [
-          { key: 'tariful_nostru', label: 'Tariful nostru' },
-          { key: 'media_concurentei', label: 'Media concurenței' },
+          { key: 'our_rate', label: 'Our rate' },
+          { key: 'competitor_avg', label: 'Competitor average' },
         ],
         columns: [
-          { key: 'data', label: 'Data' },
-          { key: 'tariful_nostru', label: 'Tariful nostru (EUR)' },
-          { key: 'media_concurentei', label: 'Media concurenței (EUR)' },
+          { key: 'date', label: 'Date' },
+          { key: 'our_rate', label: 'Our rate (EUR)' },
+          { key: 'competitor_avg', label: 'Competitor average (EUR)' },
         ],
       },
     }),
     answer: (rows) => {
-      const below = rows.filter((r) => Number(r['tariful_nostru']) < Number(r['media_concurentei']));
-      return `În următoarele 30 de zile suntem sub media concurenței în ${below.length} nopți din ${rows.length}.` +
-        (below[0] ? ` Prima dintre ele este ${below[0]['data']} (${below[0]['tariful_nostru']} EUR față de ${below[0]['media_concurentei']} EUR).` : '');
+      const below = rows.filter((r) => Number(r['our_rate']) < Number(r['competitor_avg']));
+      return `Over the next 30 days we are priced below the competitor average on ${below.length} of ${rows.length} nights.` +
+        (below[0] ? ` The first one is ${below[0]['date']} (${below[0]['our_rate']} EUR vs ${below[0]['competitor_avg']} EUR).` : '');
     },
   },
   {
     match: /.*/,
     plan: () => ({
-      sql: `SELECT to_char(d.stay_date, 'YYYY-MM') AS luna,
+      sql: `SELECT to_char(d.stay_date, 'YYYY-MM') AS month,
                    round(100 * sum(d.rooms_sold) FILTER (WHERE d.hotel_id = 'CLJ')::numeric / sum(d.rooms_available) FILTER (WHERE d.hotel_id = 'CLJ'), 1) AS cluj,
-                   round(100 * sum(d.rooms_sold) FILTER (WHERE d.hotel_id = 'BUC')::numeric / sum(d.rooms_available) FILTER (WHERE d.hotel_id = 'BUC'), 1) AS bucuresti,
+                   round(100 * sum(d.rooms_sold) FILTER (WHERE d.hotel_id = 'BUC')::numeric / sum(d.rooms_available) FILTER (WHERE d.hotel_id = 'BUC'), 1) AS bucharest,
                    round(100 * sum(d.rooms_sold) FILTER (WHERE d.hotel_id = 'BRV')::numeric / sum(d.rooms_available) FILTER (WHERE d.hotel_id = 'BRV'), 1) AS brasov
             FROM daily_performance d
             WHERE d.stay_date BETWEEN DATE '2025-11-01' AND DATE '${BUSINESS_DATE}' - 1
-            GROUP BY luna ORDER BY luna`,
+            GROUP BY month ORDER BY month`,
       reply: '',
       widget: {
         type: 'bar',
-        title: 'Ocupare pe luni, ultimele 12 luni',
-        x_key: 'luna',
+        title: 'Monthly occupancy, last 12 months',
+        x_key: 'month',
         series: [
           { key: 'cluj', label: 'Fagus Cluj' },
-          { key: 'bucuresti', label: 'Fagus București' },
+          { key: 'bucharest', label: 'Fagus București' },
           { key: 'brasov', label: 'Fagus Brașov' },
         ],
         columns: [
-          { key: 'luna', label: 'Luna' },
+          { key: 'month', label: 'Month' },
           { key: 'cluj', label: 'Cluj (%)' },
-          { key: 'bucuresti', label: 'București (%)' },
+          { key: 'bucharest', label: 'București (%)' },
           { key: 'brasov', label: 'Brașov (%)' },
         ],
       },
     }),
     answer: (rows) => {
       const best = [...rows].sort((a, b) => Number(b['cluj']) - Number(a['cluj']))[0];
-      return `Am pus ocuparea lunară a celor trei hoteluri pe ultimele 12 luni. Cluj a avut cea mai bună lună în ${best?.['luna']}, cu ${best?.['cluj']}%. ` +
-        'Răspunsul vine din modul demo, pentru că Claude Code nu este pornit.';
+      return `Here is monthly occupancy for the three hotels over the last 12 months. Cluj's best month was ${best?.['month']}, at ${best?.['cluj']}%. ` +
+        'This answer comes from demo mode because Claude Code is not available.';
     },
   },
 ];

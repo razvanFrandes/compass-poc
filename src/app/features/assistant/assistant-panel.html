@@ -1,7 +1,7 @@
 <z-card>
   <z-card-header zHeaderBorder>
-    <z-card-title zTitle="Întreabă Compass" />
-    <z-card-description zDescription="Răspunde din datele grupului și construiește graficul potrivit" />
+    <z-card-title zTitle="Ask Compass" />
+    <z-card-description zDescription="Answers from the group's data and builds the right chart" />
   </z-card-header>
 
   <z-card-content class="flex flex-col gap-4">
@@ -9,8 +9,8 @@
       @if (!messages().length) {
         <z-empty
           zIcon="lucideSparkles"
-          zTitle="Ce vrei să afli?"
-          zDescription="Întreabă despre ocupare, tarife, canale sau evenimente. Primești răspunsul și un grafic pe care îl poți fixa pe dashboard."
+          zTitle="What would you like to know?"
+          zDescription="Ask about occupancy, rates, channels or events. You get an answer and a chart you can pin to the dashboard."
         />
         <div class="flex flex-col gap-2">
           @for (suggestion of suggestions; track suggestion) {
@@ -51,7 +51,7 @@
                         (click)="pin(message)"
                       >
                         <ng-icon [name]="isPinned ? 'lucideCheck' : 'lucidePin'" />
-                        {{ isPinned ? 'Fixat' : 'Fixează' }}
+                        {{ isPinned ? 'Pinned' : 'Pin' }}
                       </button>
                     </z-card-action>
                   </z-card-header>
@@ -64,7 +64,7 @@
               @if (message.result?.sql; as sql) {
                 <z-collapsible class="flex flex-col gap-1">
                   <button z-button z-collapsible-trigger zType="ghost" zSize="sm" class="group w-fit">
-                    Vezi interogarea SQL
+                    Show SQL query
                     <ng-icon name="lucideChevronDown" class="transition-transform group-data-[state=open]:rotate-180" />
                   </button>
                   <z-collapsible-content>
@@ -84,7 +84,7 @@
       @if (pending()) {
         <z-message>
           <z-message-content>
-            <p class="shimmer text-muted-foreground text-sm">Compass caută în date și construiește graficul…</p>
+            <p class="shimmer text-muted-foreground text-sm">Compass is querying the data and building the chart…</p>
           </z-message-content>
         </z-message>
       }
@@ -95,14 +95,14 @@
         <textarea
           z-textarea
           id="assistant-question"
-          aria-label="Întrebarea ta pentru Compass"
-          placeholder="De exemplu: care hotel a avut cel mai mare RevPAR luna trecută?"
+          aria-label="Your question for Compass"
+          placeholder="For example: which hotel had the highest RevPAR last month?"
           [formField]="askForm.question"
           (keydown.enter)="onEnter($event)"
         ></textarea>
         <z-input-group-addon zAlign="block-end">
           <span z-input-group-text>
-            <z-kbd>Enter</z-kbd> trimite · <z-kbd-group><z-kbd>Shift</z-kbd>+<z-kbd>Enter</z-kbd></z-kbd-group> rând nou
+            <z-kbd>Enter</z-kbd> to send · <z-kbd-group><z-kbd>Shift</z-kbd>+<z-kbd>Enter</z-kbd></z-kbd-group> new line
           </span>
           <button
             type="submit"
@@ -110,7 +110,7 @@
             zVariant="default"
             zSize="icon-sm"
             class="ml-auto"
-            aria-label="Trimite întrebarea"
+            aria-label="Send question"
             [attr.aria-disabled]="pending() || askForm().invalid()"
           >
             <ng-icon name="lucideArrowUp" />

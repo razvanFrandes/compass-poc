@@ -28,9 +28,9 @@ import type { Hotel } from '../../core/compass-api';
       </div>
 
       <z-sidebar-content>
-        <nav aria-label="Hoteluri" class="flex flex-col gap-2">
+        <nav aria-label="Hotels" class="flex flex-col gap-2">
         <div z-sidebar-group>
-          <div z-sidebar-group-label>Portofoliu</div>
+          <div z-sidebar-group-label>Portfolio</div>
           <div z-sidebar-group-content>
             <ul z-sidebar-menu>
               <li z-sidebar-menu-item>
@@ -39,10 +39,10 @@ import type { Hotel } from '../../core/compass-api';
                   routerLink="/all"
                   [zActive]="current() === 'all'"
                   [attr.aria-current]="current() === 'all' ? 'page' : null"
-                  zTooltip="Toate hotelurile"
+                  zTooltip="All hotels"
                 >
                   <ng-icon name="lucideBuilding2" />
-                  <span>Toate hotelurile</span>
+                  <span>All hotels</span>
                 </a>
               </li>
             </ul>
@@ -50,7 +50,7 @@ import type { Hotel } from '../../core/compass-api';
         </div>
 
         <div z-sidebar-group>
-          <div z-sidebar-group-label>Hoteluri</div>
+          <div z-sidebar-group-label>Hotels</div>
           <div z-sidebar-group-content>
             <ul z-sidebar-menu>
               @for (hotel of hotels(); track hotel.id) {
@@ -81,7 +81,7 @@ import type { Hotel } from '../../core/compass-api';
       </z-sidebar-content>
 
       <div z-sidebar-footer>
-        <p class="text-muted-foreground px-2 text-xs">Date sintetice · ziua de business 5 nov. 2026</p>
+        <p class="text-muted-foreground px-2 text-xs">Synthetic data · business date Nov 5, 2026</p>
       </div>
     </z-sidebar>
   `,
